@@ -25,6 +25,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
+from .downloads import export_links, new_export_dir
 from .export_files import write_cms_zip, write_log_csv, write_log_xlsx
 from .log_parser import (
     LogEntry,
@@ -36,9 +37,7 @@ from .log_parser import (
 from .services import (
     PERIOD_PRESETS,
     _device_suffix,
-    _new_export_dir,
     _sanitize,
-    export_links,
 )
 from .smgw_client import LogExportResult
 
@@ -225,7 +224,7 @@ async def run_log_export(
         f"Logdaten_{_stamp(from_dt)}_bis_{_stamp(to_dt)}_"
         f"{processed.gateway_id or 'smgw'}"
     ) + _device_suffix(coordinator.device_name)
-    token, export_dir = _new_export_dir(hass)
+    token, export_dir = new_export_dir(hass)
     written = await hass.async_add_executor_job(
         _write_log_files,
         export_dir, base, processed, meta, download_cms, do_csv, do_xlsx,
@@ -234,8 +233,10 @@ async def run_log_export(
         "Log export wrote %d file(s) with %d entries from %d part(s) to %s",
         len(written), len(processed.entries), len(processed.parts), export_dir,
     )
+    files, valid_until = export_links(hass, token, written)
     return {
-        "files": export_links(hass, token, written),
+        "files": files,
+        "files_valid_until": valid_until,
         "entry_count": len(processed.entries),
         "parts": len(processed.parts),
         "complete": not (processed.gaps or processed.shortfalls),

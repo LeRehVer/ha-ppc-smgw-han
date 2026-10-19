@@ -65,6 +65,7 @@ from .const import (
     ZONE_TIME,
 )
 from . import gateway_lock, zone_schedule
+from .downloads import valid_until_label
 from .log_export import LOG_PERIOD_PRESETS, log_period_range, run_log_export
 from .services import (
     PERIOD_PRESETS,
@@ -72,6 +73,7 @@ from .services import (
     _validate_range,
     build_links_markdown,
     run_export,
+    validity_note,
 )
 from .smgw_client import (
     SmgwAuthError,
@@ -947,7 +949,12 @@ class SmgwOptionsFlow(OptionsFlow):
                     self._notify_export(result, links)
                     return self.async_abort(
                         reason="export_done",
-                        description_placeholders={"links": links},
+                        description_placeholders={
+                            "links": links,
+                            "expires": valid_until_label(
+                                result.get("files_valid_until")
+                            ) or "–",
+                        },
                     )
 
         # Prefill with the submitted values (on error) or the preset range.
@@ -992,6 +999,7 @@ class SmgwOptionsFlow(OptionsFlow):
         message = (
             f"{result['reading_count']} Werte, "
             f"{len(result['daily_summary'])} Tage.\n\n{links}"
+            f"{validity_note(result.get('files_valid_until'))}"
         )
         persistent_notification.async_create(
             self.hass,
@@ -1170,9 +1178,10 @@ class SmgwOptionsFlow(OptionsFlow):
                 " Achtung: Die Vollständigkeitsprüfung hat Auffälligkeiten "
                 "gefunden, Details im Blatt „Info“ der Excel-Datei."
             )
+        valid_until = result.get("files_valid_until")
         persistent_notification.async_create(
             self.hass,
-            f"{message}\n\n{links}",
+            f"{message}\n\n{links}{validity_note(valid_until)}",
             title="SMGW Logdaten",
             notification_id=f"smgw_log_export_{self.config_entry.entry_id}",
         )
@@ -1187,6 +1196,7 @@ class SmgwOptionsFlow(OptionsFlow):
             reason=reason,
             description_placeholders={
                 "links": links,
+                "expires": valid_until_label(valid_until) or "–",
                 "count": str(result.get("entry_count", 0)),
                 "parts": str(parts),
             },

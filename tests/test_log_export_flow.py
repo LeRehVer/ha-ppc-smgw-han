@@ -39,8 +39,8 @@ NOTIFY = (
     "custom_components.smgw_han.config_flow.persistent_notification.async_create"
 )
 LINKS = {
-    "cms": "http://ha.local/local/smgw_han_exports/t/Logdaten.zip",
-    "csv": "http://ha.local/local/smgw_han_exports/t/Logdaten.csv",
+    "cms": "http://ha.local/api/smgw_han/export/t/Logdaten.zip?authSig=s",
+    "csv": "http://ha.local/api/smgw_han/export/t/Logdaten.csv?authSig=s",
 }
 
 
@@ -112,8 +112,15 @@ async def _submit_dates(hass: HomeAssistant, result):
 async def test_log_export_single_part(hass: HomeAssistant):
     entry = _entry(hass)
     result = await _open_dates(hass, entry)
+    await hass.config.async_set_time_zone("Europe/Berlin")
     run = AsyncMock(
-        return_value={"files": LINKS, "entry_count": 230, "parts": 1, "complete": True}
+        return_value={
+            "files": LINKS,
+            "files_valid_until": "2026-04-02T09:05:30+02:00",
+            "entry_count": 230,
+            "parts": 1,
+            "complete": True,
+        }
     )
     with patch(RUN, run), patch(NOTIFY) as notify:
         result = await _submit_dates(hass, result)
@@ -122,6 +129,8 @@ async def test_log_export_single_part(hass: HomeAssistant):
     assert result["reason"] == "log_export_done"
     assert result["description_placeholders"]["count"] == "230"
     assert 'target="_blank">CMS</a>' in result["description_placeholders"]["links"]
+    assert result["description_placeholders"]["expires"] == "09:05"
+    assert "Die Links sind bis 09:05 Uhr gültig." in notify.call_args.args[1]
     args, kwargs = run.call_args
     assert args[2:] == (datetime(2026, 3, 1), datetime(2026, 4, 1))
     assert kwargs == {"download_cms": True, "do_csv": True, "do_xlsx": False}

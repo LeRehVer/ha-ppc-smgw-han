@@ -58,6 +58,7 @@ from .const import (
     slot_key,
     switch_key,
 )
+from .downloads import async_remove_expired_exports
 from .smgw_client import (
     DailyData,
     LogExportResult,
@@ -409,7 +410,14 @@ class SmgwCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # crosses midnight (possible with a late configured fetch time), and
         # the originally missing day would then never be fetched at all.
         target_date = dt_util.as_local(now).date() - timedelta(days=1)
-        await self._run_fetch_with_retry(target_date)
+        try:
+            await self._run_fetch_with_retry(target_date)
+        finally:
+            # Export files outlive their one-hour links until this daily pass.
+            # It runs whatever the fetch's outcome — a day with a gateway
+            # outage is no reason to keep yesterday's exports — and costs no
+            # extra timer.
+            await async_remove_expired_exports(self.hass)
 
     async def _run_fetch_with_retry(self, target_date: date) -> None:
         """Run the daily fetch for ``target_date``, retrying on failure."""

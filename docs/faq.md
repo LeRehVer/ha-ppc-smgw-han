@@ -274,11 +274,11 @@ Lege denselben Zähler ein zweites Mal an – einmal mit den Zeitfenstern deines
 
 ### <a id="x1"></a>X1 · Die Download-Links führen ins Leere oder auf das Dashboard
 
+- **„401: Unauthorized"?** Der Link ist abgelaufen. Die Links gelten **eine Stunde** ab dem Export, die genaue Uhrzeit steht im Abschluss-Schritt und in der Benachrichtigung. Ein Neustart von Home Assistant beendet sie vorzeitig. Den Export einfach neu anstoßen.
 - **Aktuelle Version installieren.** Ältere Versionen öffneten die Links im selben Tab, wo Home Assistant sie abfing.
 - **Home-Assistant-URL prüfen:** Unter **Einstellungen → System → Netzwerk** müssen die URLs stimmen, unter denen du Home Assistant erreichst. Die Links werden daraus gebaut – eine falsche URL ergibt falsche Links.
-- **Ordner `config/www/` fehlt?** Einmal von Hand anlegen und Home Assistant neu starten.
 
-Die Links sind **ohne Anmeldung** erreichbar. Lösche nicht mehr benötigte Exporte gelegentlich aus `config/www/smgw_han_exports/`.
+Die Dateien liegen unter `config/smgw_han_exports/` und sind nur über die signierten Links erreichbar. Abgelaufene Exporte löscht die Integration einmal täglich nach dem nächtlichen Abruf.
 
 ### <a id="x2"></a>X2 · Mein Export „bis 23:59:59" ist unvollständig
 

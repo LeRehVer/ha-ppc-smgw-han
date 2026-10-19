@@ -1,5 +1,7 @@
 """Constants for the SMGW HAN integration."""
 
+from datetime import timedelta
+
 DOMAIN = "smgw_han"
 
 # Config flow keys
@@ -106,9 +108,16 @@ ATTR_WRITE_XLSX = "write_xlsx"
 SMGW_HISTORY_DAYS = 760  # ~24 months + ~1 month margin (leap-safe)
 # NOTE: the "from_too_old" message in strings/en/de hard-codes "760" — update it
 # too if this number changes.
-# Files are written under <config>/www/<EXPORT_WWW_SUBDIR>/<token>/ so they are
-# reachable as /local/<EXPORT_WWW_SUBDIR>/<token>/<file> download links.
-EXPORT_WWW_SUBDIR = "smgw_han_exports"
+# Exports are written to <config>/<EXPORT_DIR>/<token>/ — deliberately NOT under
+# www/, which Home Assistant serves without authentication as /local/. They are
+# downloaded through an authenticated view instead (downloads.py), via links
+# signed with async_sign_path that stop working after EXPORT_LINK_LIFETIME.
+EXPORT_DIR = "smgw_han_exports"
+EXPORT_URL = "/api/smgw_han/export"
+EXPORT_LINK_LIFETIME = timedelta(hours=1)
+# Releases up to 3.6.x wrote here; removed on startup so the files those
+# versions left behind stop being publicly reachable.
+LEGACY_WWW_EXPORT_DIR = ("www", "smgw_han_exports")
 
 # Repair issues (homeassistant.helpers.issue_registry)
 # translation_key for the "gateway delivered no recent daily data" repair. The

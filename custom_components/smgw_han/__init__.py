@@ -36,6 +36,7 @@ from .coordinator import (
     fetch_issue_id,
     no_data_issue_id,
 )
+from .downloads import async_register_export_view, async_remove_legacy_www_exports
 from .services import async_setup_services
 from .smgw_client import SmgwClient
 
@@ -46,7 +47,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 # This integration is configured exclusively via the config flow (config
 # entries); it has no YAML configuration. Declaring the schema explicitly
 # satisfies hassfest's CONFIG_SCHEMA requirement for integrations that
-# implement async_setup (here only to register the export services).
+# implement async_setup (here only for the export services and downloads).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type SmgwConfigEntry = ConfigEntry[SmgwCoordinator]
@@ -74,8 +75,12 @@ def gateway_lock(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up integration-wide resources (the export service)."""
+    """Set up integration-wide resources (export services and downloads)."""
     async_setup_services(hass)
+    async_register_export_view(hass)
+    # Exports written by releases up to 3.6.x sit in www/, public to anyone
+    # holding a link; take them down before anything else can be served.
+    await async_remove_legacy_www_exports(hass)
     return True
 
 

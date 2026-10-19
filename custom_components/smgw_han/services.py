@@ -2,7 +2,8 @@
 
 Two integration-wide services fetch meter readings for one SMGW device and
 return them as a response variable, optionally also writing CSV / XLSX / the
-signed CMS original as downloadable files under ``<config>/www/``:
+signed CMS original as files under ``<config>/smgw_han_exports/``, offered
+through short-lived signed download links (see ``downloads.py``):
 
 - ``smgw_han.export_readings`` — explicit ``from_datetime`` / ``to_datetime``.
 - ``smgw_han.export_period``   — a ready-made period preset (yesterday, last
@@ -16,7 +17,6 @@ from __future__ import annotations
 
 import logging
 import re
-import secrets
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -33,7 +33,6 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
-from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import dt as dt_util
 
 from .aggregation import DailySummary, build_daily_summary
@@ -47,13 +46,13 @@ from .const import (
     ATTR_WRITE_CSV,
     ATTR_WRITE_XLSX,
     DOMAIN,
-    EXPORT_WWW_SUBDIR,
     SERVICE_EXPORT_PERIOD,
     SERVICE_EXPORT_READINGS,
     SMGW_HISTORY_DAYS,
     ZONE_NAME,
     ZONE_TIME,
 )
+from .downloads import export_links, new_export_dir, valid_until_label
 from .export_files import write_readings_csv, write_xlsx
 from .smgw_client import MeterReading, TariffZones
 
@@ -231,33 +230,6 @@ def _resolve_coordinator(hass: HomeAssistant, device_id: str | None):
     return entry.runtime_data
 
 
-def _new_export_dir(hass: HomeAssistant) -> tuple[str, Path]:
-    """A fresh, unguessable export directory under ``www/`` and its token."""
-    token = secrets.token_urlsafe(8)
-    return token, Path(hass.config.path("www", EXPORT_WWW_SUBDIR, token))
-
-
-def export_links(
-    hass: HomeAssistant, token: str, written: dict[str, str]
-) -> dict[str, str]:
-    """Download URLs (``kind -> url``) for files written to the export dir.
-
-    Prefer an absolute URL so the link is directly usable (clickable in
-    markdown/notifications, copy-pasteable from Developer Tools). Prefer the
-    external URL so links work behind a reverse proxy / when accessed from
-    outside (get_url falls back to the internal URL if no external one is
-    configured). Falls back to a relative /local path if neither exists.
-    """
-    try:
-        base_url = get_url(hass, prefer_external=True).rstrip("/")
-    except NoURLAvailableError:
-        base_url = ""
-    return {
-        kind: f"{base_url}/local/{EXPORT_WWW_SUBDIR}/{token}/{fname}"
-        for kind, fname in written.items()
-    }
-
-
 def _validate_range(from_dt: datetime, to_dt: datetime) -> None:
     """Plausibility checks beyond the frontend's format/required validation."""
     if from_dt >= to_dt:
@@ -367,6 +339,7 @@ async def run_export(
     to_str = to_dt.strftime("%Y-%m-%d %H:%M:%S")
 
     files: dict[str, str] = {}
+    valid_until = ""
     if download_cms or do_csv or do_xlsx:
         # An unnamed device yields an empty suffix, so a single-device
         # installation keeps exactly the filenames it had before.
@@ -379,7 +352,7 @@ async def run_export(
             + device_suffix
         )
         cms_name = _cms_name_with_device(cms_name, device_suffix)
-        token, export_dir = _new_export_dir(hass)
+        token, export_dir = new_export_dir(hass)
         # Document every layout the range touches, not just the current one:
         # an export crossing a scheduled change is split by two of them, and
         # a workbook that names only one would misrepresent half its rows.
@@ -413,7 +386,7 @@ async def run_export(
             do_csv, do_xlsx,
             cms_bytes if download_cms else None, cms_name,
         )
-        files = export_links(hass, token, written)
+        files, valid_until = export_links(hass, token, written)
         _LOGGER.info(
             "Export wrote %d file(s) for meter %s to %s",
             len(written), meter_id, export_dir,
@@ -424,6 +397,7 @@ async def run_export(
     response: dict[str, Any] = {}
     if files:
         response["files"] = files
+        response["files_valid_until"] = valid_until
     response["meter_id"] = meter_id
     response["from"] = from_str
     response["to"] = to_str
@@ -446,8 +420,9 @@ def build_links_markdown(files: dict[str, str]) -> str:
     (js-xss whitelists ``a[target]``) and opens the file in a new tab, which
     downloads it — origin-independent. Verified live against a real instance.
 
-    ``href``/label are safe unescaped: the token is ``token_urlsafe`` and the
-    filename is ``_sanitize``d, so neither contains HTML metacharacters.
+    ``href``/label are safe unescaped: the token is ``token_urlsafe``, the
+    filename is ``_sanitize``d and the ``authSig`` signature is a JWT, i.e.
+    base64url segments joined by dots — none contains HTML metacharacters.
     """
     labels = (("cms", "CMS"), ("csv", "CSV"), ("xlsx", "Excel"))
     parts = [
@@ -472,6 +447,7 @@ def _notify_export_files(hass: HomeAssistant, response: dict[str, Any]) -> None:
         f"{response['reading_count']} Werte, "
         f"{len(response['daily_summary'])} Tage.\n\n"
         f"{build_links_markdown(files)}"
+        f"{validity_note(response.get('files_valid_until'))}"
     )
     persistent_notification.async_create(
         hass,
@@ -479,6 +455,16 @@ def _notify_export_files(hass: HomeAssistant, response: dict[str, Any]) -> None:
         title="SMGW Export",
         notification_id="smgw_export_service",
     )
+
+
+def validity_note(valid_until: str | None) -> str:
+    """The notification line saying until when the links work ("" if none).
+
+    A notification stays in the bell list long after its links have expired;
+    without this line, a click there would end on a bare "401: Unauthorized".
+    """
+    label = valid_until_label(valid_until)
+    return f"\n\nDie Links sind bis {label} Uhr gültig." if label else ""
 
 
 async def _run_export_call(
