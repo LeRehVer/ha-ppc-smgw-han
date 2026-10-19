@@ -586,6 +586,43 @@ async def test_options_export_rejects_too_old(hass: HomeAssistant):
     assert result["errors"]["base"] == "from_too_old"
 
 
+async def test_options_export_shows_links_and_their_expiry(hass: HomeAssistant):
+    """Popup and notification both say until when the download links work."""
+    await hass.config.async_set_time_zone("Europe/Berlin")
+    entry = _entry("M", instance_id=1)
+    entry.add_to_hass(hass)
+    entry.runtime_data = object()  # only handed through to run_export
+    result = await _open_export_dates(hass, entry)
+    run = AsyncMock(
+        return_value={
+            "files": {
+                "cms": "http://ha.local/api/smgw_han/export/t/x.cms?authSig=s"
+            },
+            "files_valid_until": "2026-05-02T14:37:59+02:00",
+            "reading_count": 5,
+            "daily_summary": [],
+        }
+    )
+    notify = "custom_components.smgw_han.config_flow.persistent_notification.async_create"
+    with (
+        patch("custom_components.smgw_han.config_flow.run_export", run),
+        patch(notify) as mock_notify,
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "from_datetime": datetime(2026, 5, 1, 0, 0, 0),
+                "to_datetime": datetime(2026, 5, 2, 0, 0, 0),
+            },
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "export_done"
+    assert result["description_placeholders"]["expires"] == "14:37"
+    assert 'target="_blank">CMS</a>' in result["description_placeholders"]["links"]
+    assert "Die Links sind bis 14:37 Uhr gültig." in mock_notify.call_args.args[1]
+
+
 # ---------------------------------------------------------------------------
 # Tariff-zone parsing / validation
 # ---------------------------------------------------------------------------

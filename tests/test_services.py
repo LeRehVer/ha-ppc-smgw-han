@@ -11,7 +11,9 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from yarl import URL
 
 from custom_components.smgw_han.const import DOMAIN
 from custom_components.smgw_han.services import (
@@ -33,6 +35,15 @@ FIXTURE = Path(__file__).parent / "fixtures" / "cms_sample.xml.cms"
 @pytest.fixture(autouse=True)
 def _enable(enable_custom_integrations):
     yield
+
+
+@pytest.fixture(autouse=True)
+async def _http(hass: HomeAssistant):
+    """Set up http, as the manifest dependency does in production.
+
+    Signing the download links needs the auth setup http brings along.
+    """
+    assert await async_setup_component(hass, "http", {})
 
 
 class FakeCoordinator:
@@ -109,14 +120,18 @@ async def test_run_export_writes_all_files(hass: HomeAssistant):
     assert resp["meter_id"] == "1lgz0072999211"
     assert set(resp["files"]) == {"cms", "csv", "xlsx"}
     assert len(resp["daily_summary"]) >= 1
-    # Files are physically written under <config>/www/smgw_han_exports/<token>/.
-    export_root = os.path.join(
-        hass.config.config_dir, "www", "smgw_han_exports"
-    )
-    assert os.path.isdir(export_root)
-    tokens = os.listdir(export_root)
-    assert tokens
-    written = os.listdir(os.path.join(export_root, tokens[0]))
+    # Every link points at the authenticated view and carries a signature.
+    for url in resp["files"].values():
+        assert URL(url).path.startswith("/api/smgw_han/export/")
+        assert "authSig" in URL(url).query
+    assert resp["files_valid_until"]
+    # The files are physically written under <config>/smgw_han_exports/<token>/
+    # — outside www/, which Home Assistant would serve without authentication.
+    # The token is read from this export's own link: the folder is shared with
+    # other tests, so its first entry need not be ours.
+    token = URL(resp["files"]["csv"]).parts[-2]
+    folder = os.path.join(hass.config.config_dir, "smgw_han_exports", token)
+    written = os.listdir(folder)
     assert any(f.endswith(".csv") for f in written)
     assert any(f.endswith(".xlsx") for f in written)
     assert any(f.endswith(".cms") for f in written)
@@ -182,6 +197,8 @@ async def test_service_posts_notification_with_links(hass: HomeAssistant):
     assert mock_notify.called
     message = mock_notify.call_args.args[1]
     assert 'target="_blank">CMS</a>' in message
+    assert "Die Links sind bis " in message
+    assert message.endswith(" Uhr gültig.")
 
 
 async def test_service_no_notification_without_files(hass: HomeAssistant):
@@ -285,7 +302,7 @@ async def test_export_filenames_carry_the_device_name(hass: HomeAssistant):
     )
 
     names = {
-        kind: url.rsplit("/", 1)[-1] for kind, url in resp["files"].items()
+        kind: URL(url).name for kind, url in resp["files"].items()
     }
     assert set(names) == {"cms", "csv", "xlsx"}
     assert all("Modul_3_SMGW" in name for name in names.values()), names
@@ -313,7 +330,7 @@ async def test_export_filenames_unchanged_without_a_device_name(
     )
 
     names = {
-        kind: url.rsplit("/", 1)[-1] for kind, url in resp["files"].items()
+        kind: URL(url).name for kind, url in resp["files"].items()
     }
     assert names["csv"] == (
         "Zaehlerstaende_2026-05-15_000000_bis_2026-05-16_001500"

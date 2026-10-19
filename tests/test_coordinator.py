@@ -1188,3 +1188,67 @@ async def test_switch_promotes_and_reloads_the_entry(hass: HomeAssistant):
 
     assert coordinator.config_entry.data[CONF_TARIFF_ZONES] == M3_2027
     reload.assert_called_once_with(coordinator.config_entry.entry_id)
+
+
+CLEANUP = "custom_components.smgw_han.coordinator.async_remove_expired_exports"
+
+
+async def test_daily_fetch_cleans_up_expired_exports(hass: HomeAssistant):
+    """The scheduled daily run is when old export files are removed."""
+    yesterday = dt_util.now().date() - timedelta(days=1)
+    coord = _fetch_coordinator(
+        hass, _FetchStub(result=_daily_data(yesterday))
+    )
+
+    with patch(CLEANUP, AsyncMock()) as cleanup:
+        await coord._handle_daily_fetch(dt_util.now())
+
+    cleanup.assert_awaited_once_with(hass)
+    await coord.async_unload()
+
+
+async def test_cleanup_runs_even_when_the_fetch_fails(hass: HomeAssistant):
+    """A gateway outage is no reason to keep yesterday's exports around."""
+    coord = _fetch_coordinator(
+        hass, _FetchStub(exc=SmgwConnectionError("down"))
+    )
+
+    with patch(CLEANUP, AsyncMock()) as cleanup:
+        await coord._handle_daily_fetch(dt_util.now())
+
+    cleanup.assert_awaited_once_with(hass)
+    assert coord._unsub_retry is not None  # the retry is still scheduled
+    await coord.async_unload()
+
+
+async def test_retries_do_not_clean_up_again(hass: HomeAssistant):
+    """Once a day means once a day — the retry chain adds no extra passes."""
+    stub = _FetchStub(exc=SmgwConnectionError("down"))
+    coord = _fetch_coordinator(hass, stub)
+    target = dt_util.now().date() - timedelta(days=1)
+
+    with patch(CLEANUP, AsyncMock()) as cleanup:
+        await coord._handle_daily_fetch(dt_util.now())
+        await coord._handle_retry(dt_util.now(), target_date=target)
+        await coord._handle_retry(dt_util.now(), target_date=target)
+
+    assert stub.calls == 3
+    assert cleanup.await_count == 1
+    await coord.async_unload()
+
+
+async def test_cleanup_runs_even_after_an_unexpected_error(hass: HomeAssistant):
+    """Not only the expected failures: a crash in the fetch skips no cleanup."""
+    coord = _fetch_coordinator(hass, _FetchStub(result=None))
+
+    with (
+        patch.object(
+            coord, "_run_fetch_with_retry", AsyncMock(side_effect=RuntimeError)
+        ),
+        patch(CLEANUP, AsyncMock()) as cleanup,
+        pytest.raises(RuntimeError),
+    ):
+        await coord._handle_daily_fetch(dt_util.now())
+
+    cleanup.assert_awaited_once_with(hass)
+    await coord.async_unload()

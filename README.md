@@ -269,8 +269,7 @@ Damit die Links **anklickbar** werden, die Antwort in einem Folgeschritt nutzen 
 > **Wichtige Hinweise**
 >
 > - **SMGW schonen:** Jeder Aufruf öffnet eine echte SMGW-Sitzung. Den Dienst **nicht in Schleifen** aufrufen — das SMGW erlaubt nur eine aktive Sitzung und kann bei Überlastung kurzzeitig sperren. Der nächtliche Abruf und ein manueller Export blockieren sich gegenseitig automatisch (kein Konflikt), laufen aber nacheinander.
-> - **Download-Links sind unauthentifiziert:** Die Dateien landen unter `config/www/smgw_han_exports/<zufallscode>/` und sind als `/local/…`-Link **ohne Anmeldung** erreichbar. Wer den Link kennt, kann die Datei laden. Der Zufallscode im Pfad erschwert das Erraten; lösche nicht mehr benötigte Export-Ordner gelegentlich.
-> - Erscheinen die `/local/`-Links beim allerersten Export nicht, lege den Ordner `config/www/` einmal manuell an und starte HA neu (Home Assistant bindet `www/` nur beim Start ein).
+> - **Download-Links gelten eine Stunde:** Die Dateien landen unter `config/smgw_han_exports/<zufallscode>/`, außerhalb des öffentlichen Ordners `www/`. Herunterladen lassen sie sich nur über die Links aus Abschluss-Schritt und Benachrichtigung: Home Assistant signiert sie, und sie funktionieren **eine Stunde lang** — ein Neustart von Home Assistant beendet sie vorzeitig. Danach den Export einfach neu anstoßen. Abgelaufene Exporte löscht die Integration einmal täglich nach dem nächtlichen Abruf selbst.
 
 ## 📜 SMGW-Logdaten exportieren
 
@@ -289,7 +288,7 @@ Die Integration nimmt dir das ab: **Einstellungen → Geräte & Dienste → dein
 - Jede Anmeldung schreibt selbst einen Eintrag ins Log („Der Endbenutzer … hat sich auf dem SMGW eingeloggt") – auch der nächtliche Abruf der Integration und der Log-Export selbst.
 - Das SMGW hält nur eine begrenzte Zahl an Logeinträgen vor, die der Gateway-Administrator (also der Messstellenbetreiber) festgelegt hat; ältere Einträge werden automatisch gelöscht.
 - Das Fenster während des Abrufs bitte offen lassen; Schließen bricht den Abruf ab. Große Zeiträume brauchen mehrere Teilabrufe und können im Extremfall einige Minuten dauern.
-- Für die Download-Links gilt dasselbe wie beim Datenexport: Sie sind ohne Anmeldung erreichbar (siehe oben).
+- Für die Download-Links gilt dasselbe wie beim Datenexport: Sie sind signiert und gelten eine Stunde (siehe oben).
 
 ## Dashboard-Kachel: Verbrauchshistorie (täglich)
 

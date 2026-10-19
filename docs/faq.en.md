@@ -274,11 +274,11 @@ Add the same meter a second time – once with your supplier tariff's time windo
 
 ### <a id="x1"></a>X1 · The download links lead nowhere or to the dashboard
 
+- **"401: Unauthorized"?** The link has expired. Links work for **one hour** after the export; the exact time is shown in the final step and in the notification. A Home Assistant restart ends them early. Simply run the export again.
 - **Install the latest version.** Older versions opened the links in the same tab, where Home Assistant intercepted them.
 - **Check the Home Assistant URLs:** under **Settings → System → Network**, the URLs you use to reach Home Assistant must be correct. The links are built from them – a wrong URL gives wrong links.
-- **Folder `config/www/` missing?** Create it once by hand and restart Home Assistant.
 
-The links can be opened **without logging in**. Delete exports you no longer need from `config/www/smgw_han_exports/` now and then.
+The files are stored in `config/smgw_han_exports/` and can only be reached through the signed links. The integration deletes expired exports once a day after the nightly fetch.
 
 ### <a id="x2"></a>X2 · My export "until 23:59:59" is incomplete
 

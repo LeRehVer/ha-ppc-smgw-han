@@ -270,8 +270,7 @@ To make the links **clickable**, consume the response in a follow-up step — e.
 > **Important notes**
 >
 > - **Be gentle with the SMGW:** Every call opens a real SMGW session. Do **not** call the service in loops — the SMGW allows only one active session and may briefly lock out on overload. The nightly fetch and a manual export block each other automatically (no conflict) but run sequentially.
-> - **Download links are unauthenticated:** Files are written to `config/www/smgw_han_exports/<random>/` and are reachable as `/local/…` links **without login**. Anyone who knows the link can fetch the file. The random path component makes guessing hard; delete export folders you no longer need from time to time.
-> - If the `/local/` links don't work on the very first export, create the `config/www/` folder once manually and restart HA (Home Assistant only mounts `www/` at startup).
+> - **Download links work for one hour:** Files are written to `config/smgw_han_exports/<random>/`, outside the public `www/` folder. They can only be downloaded through the links in the final step and the notification: Home Assistant signs them, and they work **for one hour** — a Home Assistant restart ends them early. After that, simply run the export again. The integration deletes expired exports itself, once a day after the nightly fetch.
 
 ## 📜 Exporting the SMGW log
 
@@ -290,7 +289,7 @@ The integration does that for you: **Settings → Devices & Services → your SM
 - Every login writes an entry into the log itself ("Der Endbenutzer … hat sich auf dem SMGW eingeloggt" – "the end user … logged in to the SMGW") – including the integration's nightly fetch and the log export itself.
 - The SMGW keeps only a limited number of log entries, set by the gateway administrator (i.e. the metering point operator); older entries are deleted automatically.
 - Please keep the dialog open while the download runs; closing it cancels the download. Long ranges need several requests and can take a few minutes in extreme cases.
-- The download links work the same way as for the data export: they are reachable without login (see above).
+- The download links work the same way as for the data export: they are signed and work for one hour (see above).
 
 ## Dashboard card: Daily consumption history
 
