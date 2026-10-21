@@ -3,7 +3,7 @@
 
 <img src="custom_components/smgw_han/brand/icon.png" alt="SMGW Icon" width="128" align="left" style="margin-right: 16px;">
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub stars](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=stars&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads%20since%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub stars](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=stars&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads via GitHub releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=downloads%20since%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
 
 <!--
 The analytics counter stays disabled for now: Home Assistant Analytics filters
@@ -65,17 +65,13 @@ Another SMGW integration polls current meter readings at fixed 10 minute interva
 
 ### HACS (recommended)
 
-1. Open **HACS** from the Home Assistant sidebar
-2. **Three-dot menu** in the top right → **Custom repositories**
-3. In the dialog:
-   - *Repository* field: `https://github.com/TRON4R/ha-ppc-smgw-han`
-   - *Type* dropdown: **Integration**
-   - Click <kbd>ADD</kbd>, then close the dialog with the **X** in the top left
-4. Search for `PPC SMGW HAN` in the HACS search box, open the **PPC SMGW HAN Daily Import** entry and click <kbd>DOWNLOAD</kbd> in the bottom right
-5. Restart Home Assistant
+The integration is listed in the HACS store.
 
-> [!NOTE]
-> The integration only shows up in the HACS search **after** steps 2–3. Searching before that returns "repository not found".
+1. Open **HACS** from the Home Assistant sidebar
+2. Search for `PPC SMGW HAN` in the search box, open the **PPC SMGW HAN Daily Import** entry and click <kbd>DOWNLOAD</kbd> in the bottom right
+3. Restart Home Assistant
+
+Even quicker: the **"Open your Home Assistant instance…"** button at the top opens the integration directly in your HACS.
 
 ### Manual
 
