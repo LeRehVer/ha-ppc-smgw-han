@@ -3,7 +3,7 @@
 
 <img src="custom_components/smgw_han/brand/icon.png" alt="SMGW Icon" width="128" align="left" style="margin-right: 16px;">
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub-Sterne](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=Sterne&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads über GitHub-Releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=Downloads%20seit%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration) [![GitHub-Sterne](https://img.shields.io/github/stars/TRON4R/ha-ppc-smgw-han?label=Sterne&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/stargazers) [![Downloads über GitHub-Releases](https://img.shields.io/github/downloads/TRON4R/ha-ppc-smgw-han/total?label=Downloads%20seit%2008%2F2026&color=41BDF5&logo=github&logoColor=white)](https://github.com/TRON4R/ha-ppc-smgw-han/releases)
 
 <!--
 Der Analytics-Zähler bleibt vorerst deaktiviert: Home Assistant Analytics
@@ -65,17 +65,13 @@ Eine andere SMGW-Integration fragt aktuelle Zählerstände z.B. in festen 10-Min
 
 ### HACS (empfohlen)
 
-1. In Home Assistant in der linken Seitenleiste **HACS** öffnen
-2. Oben rechts das **Drei-Punkte-Menü** → **Benutzerdefinierte Repositories**
-3. Im Dialog:
-   - Feld *Repository*: `https://github.com/TRON4R/ha-ppc-smgw-han`
-   - Dropdown *Typ*: **Integration**
-   - <kbd>HINZUFÜGEN</kbd> klicken, danach den Dialog oben links mit **X** schließen
-4. Im HACS-Suchfeld nach `PPC SMGW HAN` suchen, den Eintrag **PPC SMGW HAN Daily Import** öffnen und unten rechts <kbd>HERUNTERLADEN</kbd> klicken
-5. Home Assistant neu starten
+Die Integration ist im HACS-Store gelistet.
 
-> [!NOTE]
-> Die Integration erscheint in der HACS-Suche **erst nach** Schritt 2–3. Wer vorher sucht, bekommt „Repository nicht gefunden".
+1. In Home Assistant in der linken Seitenleiste **HACS** öffnen
+2. Im Suchfeld nach `PPC SMGW HAN` suchen, den Eintrag **PPC SMGW HAN Daily Import** öffnen und unten rechts <kbd>HERUNTERLADEN</kbd> klicken
+3. Home Assistant neu starten
+
+Noch schneller geht es über den Button **„Open your Home Assistant instance…"** oben: Er öffnet die Integration direkt in deinem HACS.
 
 ### Manuell
 
